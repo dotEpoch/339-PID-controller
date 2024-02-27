@@ -28,7 +28,7 @@ class plotter():
         How long to wait for responses before giving up [s]. 
         
     t_update : int
-        Refresh time for the GUI (to grab new data and plot it)
+        Refresh time for the GUI (to grab new data and plot it) [ms].
         
     """
     def __init__(self, port, baudrate, timeout, t_update):
