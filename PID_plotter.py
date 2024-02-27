@@ -25,7 +25,7 @@ class plotter():
         Baud rate of the connection. Must match the instrument setting.
         
     timeout : int
-        How long to wait for responses before giving up (ms). 
+        How long to wait for responses before giving up [s]. 
         
     t_update : int
         Refresh time for the GUI (to grab new data and plot it)
@@ -64,7 +64,7 @@ class plotter():
     
     def _timer_tick(self):
         
-        # Grab availible data and try to unpack it
+        # Grab available data and try to unpack it
         packet = self.arduino.read_until(terminator.encode())
         data = packet.decode().strip(terminator).split(',')
         try:
