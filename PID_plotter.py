@@ -1,5 +1,5 @@
 '''
-Example script for use in the PHYS 339 PID lab at McGill University.
+Example script for use in the PHYS-339 PID lab at McGill University.
 Written by Brandon Ruffolo in Feb 2024.
 
 '''
@@ -10,12 +10,29 @@ import serial  as _serial
 import spinmob.egg as _egg
 _g = _egg.gui
 
-terminator  = '\r\n' # Serial COM marker
+terminator  = '\r\n' # Serial packet end marker
 
 class plotter():
+    """
+    GUI object for plotting data from the PHYS-339 arduino based PID hardware.
     
-    def __init__(self, name, dt, port, baudrate, timeout):
-        self.window    = _g.Window(name, size = [1000,800])
+    Parameters
+    ----------
+    port : str
+        Name of the port to connect to.
+        
+    baudrate : int
+        Baud rate of the connection. Must match the instrument setting.
+        
+    timeout : int
+        How long to wait for responses before giving up (ms). 
+        
+    t_update : int
+        Refresh time for the GUI (to grab new data and plot it)
+        
+    """
+    def __init__(self, port, baudrate, timeout, t_update):
+        self.window    = _g.Window('PID', size = [1000,800])
         
         # Define grid space
         self.grid_top     = self.window.place_object(_g.GridLayout(False))
@@ -30,10 +47,10 @@ class plotter():
         self.plot_raw = self.grid_bottom.place_object(_g.DataboxPlot('*.csv', autoscript=1), column_span=10)
         
         # Timer
-        self.timer    = _g.Timer(interval_ms=dt, single_shot=False)
+        self.timer    = _g.Timer(interval_ms=t_update, single_shot=False)
         self.timer.signal_tick.connect(self._timer_tick)
         
-        #
+        # Connect to the Arduino
         self.arduino = _serial.Serial(port = port, baudrate = baudrate, timeout = timeout)
         _time.sleep(2)             # Give the arduino time to reset and run setup()
         self.arduino.flushInput()  # Flush any data in the input buffer
@@ -46,6 +63,8 @@ class plotter():
 
     
     def _timer_tick(self):
+        
+        # Grab availible data and try to unpack it
         packet = self.arduino.read_until(terminator.encode())
         data = packet.decode().strip(terminator).split(',')
         try:
@@ -61,4 +80,4 @@ class plotter():
         # Update the gui
         self.window.process_events()
 
-self = plotter(name = 'PID', dt = 80, port = 'COM4', baudrate = 115200, timeout = 1)  
+self = plotter(port = 'COM4', baudrate = 115200, timeout = 1, t_update=80)  
