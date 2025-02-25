@@ -4,6 +4,8 @@
  */
 
 #include "Adafruit_MAX31856.h" // Make sure to install this library!
+//#include <AccelStepper.h>
+//#include <Adafruit_MotorShield.h>
 
 #define SKETCH_VERSION "0.0.1"
 #define BAUD 115200
@@ -12,6 +14,8 @@ Adafruit_MAX31856 thermocouple = Adafruit_MAX31856(5,4,3,2); // Use software SPI
 
 uint32_t t0 = 0;         // Reference time
 uint16_t heater = 8000;  // Heater power
+
+const float cutoffTemp = 50.0; // Temperature cut-off point.
 
 void setup() {
   Serial.begin(BAUD);      // Enable Serial COM
@@ -43,4 +47,12 @@ void loop() {
   Serial.print(String(temperature,4));
   Serial.print(",");
   Serial.println(heater); 
+
+  if (temperature > cutoffTemp) {
+    analogWrite(9, 0);
+  } else {
+    analogWrite(9, heater);
+  }
+
+  //delay(1000);
 }

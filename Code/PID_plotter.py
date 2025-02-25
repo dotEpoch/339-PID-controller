@@ -69,15 +69,16 @@ class plotter():
         data = packet.decode().strip(terminator).split(',')
         try:
             t, T, H = float(data[0]), float(data[1]), float(data[2])
+            self.plot_raw.append_row( [t/1000, T, 100*H/62499], ckeys=['Time (s)', 'Temperature (C)', 'Power (%)'])
+            self.plot_raw.plot()
+            self.number_temperature.set_value(T)
         except:
             return
         
         # Write the data into the GUI
-        self.plot_raw.append_row( [t/1000, T, 100*H/62499], ckeys=['Time (s)', 'Temperature (C)', 'Power (%)'])
-        self.plot_raw.plot()
-        self.number_temperature.set_value(T)
+
         
         # Update the gui
         self.window.process_events()
 
-self = plotter(port = 'COM4', baudrate = 115200, timeout = 1, t_update=80)  
+self = plotter(port = 'COM5', baudrate = 115200, timeout = 1, t_update=80)  
