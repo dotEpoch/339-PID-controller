@@ -15,7 +15,7 @@ Adafruit_MAX31856 thermocouple = Adafruit_MAX31856(5,4,3,2); // Use software SPI
 uint32_t t0 = 0;         // Reference time
 uint16_t heater = 32000;  // Heater power
 
-const float cutoffTemp = 50.0; // Temperature cut-off point.
+const float cutoffTemp = 100.0; // Temperature cut-off point.
 
 void setup() {
   Serial.begin(BAUD);      // Enable Serial COM
