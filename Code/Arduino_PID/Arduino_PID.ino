@@ -13,7 +13,7 @@
 Adafruit_MAX31856 thermocouple = Adafruit_MAX31856(5,4,3,2); // Use software SPI: CS, DI, DO, CLK
 
 uint32_t t0 = 0;         // Reference time
-uint16_t heater = 8000;  // Heater power
+uint16_t heater = 32000;  // Heater power
 
 const float cutoffTemp = 50.0; // Temperature cut-off point.
 
@@ -48,11 +48,15 @@ void loop() {
   Serial.print(",");
   Serial.println(heater); 
 
+
   if (temperature > cutoffTemp) {
     analogWrite(9, 0);
-  } else {
+  } 
+  else {
     analogWrite(9, heater);
   }
+
+
 
   //delay(1000);
 }
