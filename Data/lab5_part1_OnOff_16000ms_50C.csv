@@ -10,7 +10,7 @@ self.script	"x = ( d[0] )\ny = ( d[1], d[2] )\n\nxlabels = 'Time (s)'\nylabels =
 self.number_history	0
 self.text_log_note	'Note'
 
-Time (s)	Temperature (C)	Power (%)
+Time	Temperature	Power
 0.605	26.4063	25.600409606553704
 0.706	26.375	25.600409606553704
 0.806	26.3906	25.600409606553704

@@ -32,7 +32,8 @@ class plotter():
         
     """
     def __init__(self, port, baudrate, timeout, t_update):
-        self.window    = _g.Window('PID', size = [1000,800])
+        self.window    = _g.Window('PID', size = [1000,800], )
+                                   # event_close=_serial.Serial(port = port, baudrate = baudrate, timeout = timeout).close() ) #event_close=self.arduino.close()
         
         # Define grid space
         self.grid_top     = self.window.place_object(_g.GridLayout(False))
@@ -69,7 +70,7 @@ class plotter():
         data = packet.decode().strip(terminator).split(',')
         try:
             t, T, H = float(data[0]), float(data[1]), float(data[2])
-            self.plot_raw.append_row( [t/1000, T, 100*H/62499], ckeys=['Time (s)', 'Temperature (C)', 'Power (%)'])
+            self.plot_raw.append_row( [t/1000, T, 100*H/62499], ckeys=['Time(s)', 'Temperature(C)', 'Power(%)'])
             self.plot_raw.plot()
             self.number_temperature.set_value(T)
         except:

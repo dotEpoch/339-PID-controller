@@ -1,21 +1,28 @@
 /*
  * Example script for use in the PHYS-339 PID lab at McGill University.
  * Written by Brandon Ruffolo in Feb 2024.
- */
+*/
 
+// Packages
 #include "Adafruit_MAX31856.h" // Make sure to install this library!
-//#include <AccelStepper.h>
-//#include <Adafruit_MotorShield.h>
+#include <Adafruit_MotorShield.h>
 
+// Definitions
 #define SKETCH_VERSION "0.0.1"
 #define BAUD 115200
 
+// Init Thermocouple
 Adafruit_MAX31856 thermocouple = Adafruit_MAX31856(5,4,3,2); // Use software SPI: CS, DI, DO, CLK
 
-uint32_t t0 = 0;         // Reference time
-uint16_t heater = 32000;  // Heater power
+// Init Fan Motor 
+Adafruit_MotorShield AFMS = Adafruit_MotorShield(); // Grab motorShield
+Adafruit_DCMotor *myMotor = AFMS.getMotor(1); // get motor on port 1
 
-const float cutoffTemp = 100.0; // Temperature cut-off point.
+// Init Constants
+uint32_t t0 = 0;         // Reference time
+uint16_t heater = 0;  // Heater power
+const float cutoffTemp = 90.0; // Temperature cut-off point.
+bool cooling = true;
 
 void setup() {
   Serial.begin(BAUD);      // Enable Serial COM
@@ -31,15 +38,39 @@ void setup() {
   TCCR1B = TCCR1B | _BV(CS12);        // Set prescaler @ 256
   ICR1 = 62499;                       // Set the PWM frequency to 1Hz: 16MHz/(256 * 1Hz) - 1 = 62499
   OCR1A = 0;                          // Output compare register for setting duty cycle (This can be conveniently set with analogWrite())
-  
+    
   t0 = millis();                      // Set start time 
   analogWrite(9,heater);              // Set a fixed heater power
+
+    // --- Fan Control --- //
+  AFMS.begin(50);
+
+  myMotor->run(FORWARD);
+  for (uint8_t i=0; i<255; i++) {
+    myMotor->setSpeed(i);
+    delay(10);
+  }
+
 }
+
+
 
 void loop() {
 
   float temperature = thermocouple.readThermocoupleTemperature(); // Read the last temperature measurement made by the thermocouple
   delay(100); // 100 ms delay to give the MAX31856 time for next temperature conversion (see datasheet!)
+
+  if (cooling && temperature < 25) { // If cooling is needed
+    myMotor->run(RELEASE);
+    cooling = false;
+    heater = 35000;
+  }
+  else if (temperature > cutoffTemp) {
+      analogWrite(9, 0);
+    } 
+  else {
+    analogWrite(9, heater);
+  }
 
   /* Print out time, temperature, and heater data (comma delimited)*/
   Serial.print(millis()-t0);
@@ -47,15 +78,6 @@ void loop() {
   Serial.print(String(temperature,4));
   Serial.print(",");
   Serial.println(heater); 
-
-
-  if (temperature > cutoffTemp) {
-    analogWrite(9, 0);
-  } 
-  else {
-    analogWrite(9, heater);
-  }
-
 
 
   //delay(1000);

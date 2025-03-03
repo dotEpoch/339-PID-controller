@@ -1,18 +1,34 @@
+/*
+DC Fan Control Arduino Program
+--> Author: Vincent Aucoin @dotEpoch
+*/
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Packages
 #include "Adafruit_MAX31856.h" // Make sure to install this library!
-//#include <AccelStepper.h>
+/*#include <AccelStepper.h> // Unused since fan is DC*/
 #include <Adafruit_MotorShield.h>
 
+// Definitions
 #define SKETCH_VERSION "0.0.1"
 #define BAUD 115200
 
+// Init Thermocouple
 Adafruit_MAX31856 thermocouple = Adafruit_MAX31856(5,4,3,2); // Use software SPI: CS, DI, DO, CLK
 
-uint32_t t0 = 0;         // Reference time
-uint16_t heater = 32000;  // Heater power
+// Init Fan Motor 
+Adafruit_MotorShield AFMS = Adafruit_MotorShield(); // Grab motorShield
+Adafruit_DCMotor *myMotor = AFMS.getMotor(1); // get motor on port 1
 
+// Constants
+uint32_t t0 = 0;         // Reference time
+uint16_t heater = 0;  // Heater power to 0 for maximum cooling
 const float cutoffTemp = 50.0; // Temperature cut-off point.
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 void setup() {
+
+  // --- ThermoCouple --- //
   Serial.begin(BAUD);      // Enable Serial COM
   thermocouple.begin();    // Enable MAX31856 
 
@@ -29,6 +45,15 @@ void setup() {
   
   t0 = millis();                      // Set start time 
   analogWrite(9,heater);              // Set a fixed heater power
+
+  // --- Fan Control --- //
+  AFMS.begin(50);
+
+  myMotor->run(FORWARD);
+  for (uint8_t i=0; i<255; i++) {
+    myMotor->setSpeed(i);
+    delay(10);
+  }
 }
 
 void loop() {
@@ -51,6 +76,9 @@ void loop() {
     analogWrite(9, heater);
   }
 
+  if (temperature < 24) {
+    myMotor->run(RELEASE);
+  }
 
 
   //delay(1000);
