@@ -3,26 +3,32 @@
  * Written by Brandon Ruffolo in Feb 2024.
 */
 
-// Packages
+/* Packages */
 #include "Adafruit_MAX31856.h" // Make sure to install this library!
 #include <Adafruit_MotorShield.h>
 
-// Definitions
+/* Definitions */
 #define SKETCH_VERSION "0.0.1"
 #define BAUD 115200
 
-// Init Thermocouple
+/* Init Thermocouple */
 Adafruit_MAX31856 thermocouple = Adafruit_MAX31856(5,4,3,2); // Use software SPI: CS, DI, DO, CLK
 
-// Init Fan Motor 
+/* Init Fan Motor */
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); // Grab motorShield
 Adafruit_DCMotor *myMotor = AFMS.getMotor(1); // get motor on port 1
 
-// Init Constants
+/* Init Constants */
 uint32_t t0 = 0;         // Reference time
 uint16_t heater = 0;  // Heater power
-const float cutoffTemp = 90.0; // Temperature cut-off point.
+const float cutoffTemp = 150.0; // Temperature cut-off point.
 bool cooling = true;
+//Hysteresis
+bool tempReached = false;
+const float targetTemp = 100.0;
+const float hysteresisRange = 2.0;
+const float upperBound = targetTemp + hysteresisRange/2.0;
+const float lowerBound = targetTemp - hysteresisRange/2.0;
 
 void setup() {
   Serial.begin(BAUD);      // Enable Serial COM
@@ -39,7 +45,7 @@ void setup() {
   ICR1 = 62499;                       // Set the PWM frequency to 1Hz: 16MHz/(256 * 1Hz) - 1 = 62499
   OCR1A = 0;                          // Output compare register for setting duty cycle (This can be conveniently set with analogWrite())
     
-  t0 = millis();                      // Set start time 
+  t0 = millis();                  // Set start time 
   analogWrite(9,heater);              // Set a fixed heater power
 
     // --- Fan Control --- //
@@ -63,14 +69,30 @@ void loop() {
   if (cooling && temperature < 25) { // If cooling is needed
     myMotor->run(RELEASE);
     cooling = false;
+    //analogWrite(9, heater);
     heater = 35000;
   }
-  else if (temperature > cutoffTemp) {
-      analogWrite(9, 0);
+  else if (!cooling) {
+    if (temperature > cutoffTemp) {
+      //analogWrite(9, 0);
+      heater = 0;
+      delay(5000);
     } 
-  else {
-    analogWrite(9, heater);
+    else if (temperature > targetTemp && !tempReached) {
+      //analogWrite(9, 0);
+      //heater = 0;
+      tempReached = true;
+    }
+    else if (temperature < lowerBound && tempReached) {
+      //analogWrite(9, heater);
+      heater = 35000;
+    }
+    else if (temperature > upperBound && tempReached) {
+      //analogWrite(9, 0); 
+      heater = 0;
+    }
   }
+  analogWrite(9, 0); 
 
   /* Print out time, temperature, and heater data (comma delimited)*/
   Serial.print(millis()-t0);
@@ -78,7 +100,6 @@ void loop() {
   Serial.print(String(temperature,4));
   Serial.print(",");
   Serial.println(heater); 
-
 
   //delay(1000);
 }
