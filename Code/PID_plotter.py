@@ -44,6 +44,8 @@ class plotter():
         self.grid_top.place_object(_g.Label('Temperature:').set_style('font-size: 20pt; color: mediumspringgreen'),alignment=2)
         self.number_temperature = self.grid_top.place_object(_g.NumberBox(0.000, suffix = '°C').enable().set_width(250).set_style('font-size: 20pt; color: mediumspringgreen'),alignment=2)
         
+
+        
         # Plot databox
         self.plot_raw = self.grid_bottom.place_object(_g.DataboxPlot('*.csv', autoscript=1), column_span=10)
         
@@ -55,6 +57,14 @@ class plotter():
         self.arduino = _serial.Serial(port = port, baudrate = baudrate, timeout = timeout)
         _time.sleep(2)             # Give the arduino time to reset and run setup()
         self.arduino.flushInput()  # Flush any data in the input buffer
+        
+        #Custom Button
+        # def fully_close():
+        #     self.arduino.close()
+        #     #self.close()
+            
+        # self.grid_top.place_object(_g.Button(text="BETTER QUIT BUTTON", signal_clicked=fully_close()), alignment=2)
+
         
         # Show the GUI
         self.window.show()

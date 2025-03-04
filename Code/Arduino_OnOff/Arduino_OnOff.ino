@@ -23,15 +23,12 @@ uint32_t t0 = 0;         // Reference time
 uint16_t heater = 0;  // Heater power
 const float cutoffTemp = 150.0; // Temperature cut-off point.
 bool cooling = true;
-//Proportional Band
+//Hysteresis
 bool tempReached = false;
 const float targetTemp = 100.0;
-const float bandRange = 2.0;
-const float upperBound = targetTemp + bandRange/2.0;
-const float lowerBound = targetTemp - bandRange/2.0;
-const float interval = 100;
-uint32_t past = 0;
-
+const float hysteresisRange = 2.0;
+const float upperBound = targetTemp + hysteresisRange/2.0;
+const float lowerBound = targetTemp - hysteresisRange/2.0;
 
 void setup() {
   Serial.begin(BAUD);      // Enable Serial COM
@@ -50,7 +47,6 @@ void setup() {
     
   t0 = millis();                  // Set start time 
   analogWrite(9,heater);              // Set a fixed heater power
-  past = t0; 
 
     // --- Fan Control --- //
   AFMS.begin(50);
@@ -60,53 +56,29 @@ void setup() {
     myMotor->setSpeed(i);
     delay(10);
   }
+
 }
+
 
 
 void loop() {
 
   float temperature = thermocouple.readThermocoupleTemperature(); // Read the last temperature measurement made by the thermocouple
   delay(100); // 100 ms delay to give the MAX31856 time for next temperature conversion (see datasheet!)
-  //cooling = false; //for debugging
+
   if (cooling && temperature < 25) { // If cooling is needed
     myMotor->run(RELEASE);
     cooling = false;
     //analogWrite(9, heater);
-    heater = 50000;
+    heater = 35000;
   }
   else if (!cooling) {
-
-
-    //float proportionalHeat = map(temperature, lowerBound, upperBound, 50000, 0);
-
     if (temperature > cutoffTemp) {
+      //analogWrite(9, 0);
       heater = 0;
-      delay(5000);
     } 
-    else if ( lowerBound < temperature && temperature < upperBound) { // in between bounds
-
-      static float integral = 0;
-      static float derivative = 0;
-      static float errorBuffer = 0;
-
-      float error = (targetTemp - temperature)/bandRange ; // Error of target vs measured
-      errorBuffer = errorBuffer + error;
-
-      if (millis() - past >= interval){
-        //update integral term
-        integral = errorBuffer;
-        errorBuffer = 0;
-        past = millis();
-      }
-      float proportionalHeat = (0.5 + error + integral + derivative) * 50000;
-
-      heater = proportionalHeat;
-    }
-    else if (temperature < lowerBound) {
-      heater = 50000;
-    }
-    else if (temperature > upperBound) {
-      heater = 0;
+    else {
+      heater = 35000;
     }
   }
   analogWrite(9, heater); 
