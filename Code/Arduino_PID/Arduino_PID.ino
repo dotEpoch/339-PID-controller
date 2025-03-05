@@ -29,7 +29,7 @@ const float targetTemp = 100.0;
 const float bandRange = 2.0;
 const float upperBound = targetTemp + bandRange/2.0;
 const float lowerBound = targetTemp - bandRange/2.0;
-const float interval = 100;
+const int interval = 20; // after "interval" points, reset integral
 uint32_t past = 0;
 
 
@@ -62,6 +62,21 @@ void setup() {
   }
 }
 
+float integrate(float *temperatureList, int count, float a, float b) { //trapezoidal rule
+  float h = (b-a)/(count);
+  float integral = 0;
+  for (int pos=0; pos <= count; pos++){
+    if (pos == 0 || pos == count){
+      integral = integral + h/2.0*temperatureList[pos];
+    }
+    else{
+        integral = integral + h*temperatureList[pos];
+        temperatureList[pos] = 0;
+    }
+  }
+  return integral;
+}
+
 
 void loop() {
 
@@ -76,9 +91,6 @@ void loop() {
   }
   else if (!cooling) {
 
-
-    //float proportionalHeat = map(temperature, lowerBound, upperBound, 50000, 0);
-
     if (temperature > cutoffTemp) {
       heater = 0;
       delay(5000);
@@ -87,15 +99,18 @@ void loop() {
 
       static float integral = 0;
       static float derivative = 0;
-      static float errorBuffer = 0;
+      static float errorBuffer[interval];
+      static int count = 0;
 
       float error = (targetTemp - temperature)/bandRange ; // Error of target vs measured
-      errorBuffer = errorBuffer + error;
+      errorBuffer[count] = error;
+      count++;
 
-      if (millis() - past >= interval){
+      if (count == interval-1){
         //update integral term
-        integral = errorBuffer;
-        errorBuffer = 0;
+        float curr = millis();
+        integral = integrate(errorBuffer, count, past, curr);
+        count = 0;
         past = millis();
       }
       float proportionalHeat = (0.5 + error + integral + derivative) * 50000;
@@ -108,6 +123,7 @@ void loop() {
     else if (temperature > upperBound) {
       heater = 0;
     }
+
   }
   analogWrite(9, heater); 
 
