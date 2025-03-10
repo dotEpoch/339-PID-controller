@@ -20,16 +20,17 @@ Adafruit_DCMotor *myMotor = AFMS.getMotor(1); // get motor on port 1
 
 /* Init Constants */
 uint32_t t0 = 0;         // Reference time
-uint16_t heater = 50000;  // Heater power
+uint16_t heater = 0;  // Heater power
 const float cutoffTemp = 150.0; // Temperature cut-off point.
 bool cooling = true;
 //Proportional Band
 bool tempReached = false;
-const float targetTemp = 90.0;
-const float bandRange = 5.0;
+const float targetTemp = 100.0;
+const float bandRange = 2.5;
 const float upperBound = targetTemp + bandRange/2.0;
 const float lowerBound = targetTemp - bandRange/2.0;
 const int interval = 2; // after "interval" points, reset integral
+const float T_i = 30000.0;
 uint32_t past = 0;
 
 
@@ -55,7 +56,7 @@ void setup() {
     // --- Fan Control --- //
   AFMS.begin(50);
 
-  myMotor->run(RELEASE);
+  myMotor->run(FORWARD);
   for (uint8_t i=0; i<255; i++) {
     myMotor->setSpeed(i);
     delay(10);
@@ -76,11 +77,10 @@ float integrate(float *temperatureList, int count, float a, float b) { //trapezo
         temperatureList[pos] = 0;
     }
   }
-  return integral/1000;
+  return integral;
 }
 
 float derivative() {
-
 
 
   return 0.0;
@@ -89,10 +89,14 @@ float derivative() {
 
 void loop() {
 
+  
   float temperature = thermocouple.readThermocoupleTemperature(); // Read the last temperature measurement made by the thermocouple
+  float curr = millis();
+  static float prevTemp = 0.0;
   delay(100); // 100 ms delay to give the MAX31856 time for next temperature conversion (see datasheet!)
-  cooling = false; //for debugging
-  if (cooling && temperature < 25) { // If cooling is needed
+
+  //cooling = false; //for debugging
+  if (cooling && temperature < 97) { // If cooling is needed
     myMotor->run(RELEASE);
     cooling = false;
     //analogWrite(9, heater);
@@ -106,31 +110,26 @@ void loop() {
     } 
     else if ( lowerBound < temperature && temperature < upperBound) { // in between bounds
 
-      static float integral = 0;
-      static float derivative = 0;
-      static float errorBuffer[interval];
-      static int count = 0;
+      static float integral = 0.0;
+      static float derivative = 0.0;
+      static float errsum = 0.0;
 
-      float error = (targetTemp - temperature); // Error of target vs measured
-      errorBuffer[count] = error;
-      count++;
+      float error = (targetTemp - temperature)/bandRange; // Error of target vs measured
+      integral = error*(curr-past) + integral;
+      derivative = -50*(temperature - prevTemp) / (curr - past);
 
-      if (count == interval-1){
-        //update integral term
-        float curr = millis();
-        integral = integrate(errorBuffer, count, past, curr);
-        count = 0;
-        past = millis();
-      }
-      float coeff = (0.5 + error/bandRange  + integral + derivative);  // proportional error + integral + derivative
+      float coeff = (0.5 + error + integral/T_i + derivative);  // proportional error + integral + derivative
       float proportionalHeat = abs(coeff) * 50000;
       
-      // Serial.print(coeff);
+      // Serial.print(coeff, 4);
       // Serial.print("<--Coeff,  ");
-      // Serial.print(error/bandRange);
+      // Serial.print(error, 4);
       // Serial.print("<--Error,  ");
-      // Serial.print(integral);
+      // Serial.print(integral/T_i, 4);
       // Serial.print("<--Integral ||  ");
+      // Serial.print(derivative, 4);
+      // Serial.print("<--derivative ||  ");
+
 
       heater = proportionalHeat;
     }
@@ -154,4 +153,6 @@ void loop() {
   //if (temperature >= targetTemp) tempReached =true;
 
   //delay(1000);
+  prevTemp = temperature;
+  past = curr;
 }
