@@ -26,11 +26,12 @@ bool cooling = true;
 //Proportional Band
 bool tempReached = false;
 const float targetTemp = 100.0;
-const float bandRange = 2.5;
+const float bandRange = 8.0;
 const float upperBound = targetTemp + bandRange/2.0;
 const float lowerBound = targetTemp - bandRange/2.0;
 const int interval = 2; // after "interval" points, reset integral
 const float T_i = 30000.0;
+const float T_d = 1.0;
 uint32_t past = 0;
 
 
@@ -92,15 +93,17 @@ void loop() {
   
   float temperature = thermocouple.readThermocoupleTemperature(); // Read the last temperature measurement made by the thermocouple
   float curr = millis();
+  float error = (targetTemp - temperature)/bandRange;
   static float prevTemp = 0.0;
+  static float prevErr = 0.0;
   delay(100); // 100 ms delay to give the MAX31856 time for next temperature conversion (see datasheet!)
 
   //cooling = false; //for debugging
-  if (cooling && temperature < 97) { // If cooling is needed
+  if (cooling && temperature < 90) { // If cooling is needed
     myMotor->run(RELEASE);
     cooling = false;
     //analogWrite(9, heater);
-    heater = 50000;
+    heater = 62498;
   }
   else if (!cooling ) { //&& tempReached
 
@@ -116,10 +119,10 @@ void loop() {
 
       float error = (targetTemp - temperature)/bandRange; // Error of target vs measured
       integral = error*(curr-past) + integral;
-      derivative = -50*(temperature - prevTemp) / (curr - past);
+      derivative = derivative - (error - prevErr) / (curr - past);
 
-      float coeff = (0.5 + error + integral/T_i + derivative);  // proportional error + integral + derivative
-      float proportionalHeat = abs(coeff) * 50000;
+      float coeff = (0.5 + error + integral/T_i + derivative*T_d);  // proportional error + integral + derivative
+      float proportionalHeat = abs(coeff) * 62498;
       
       // Serial.print(coeff, 4);
       // Serial.print("<--Coeff,  ");
@@ -134,7 +137,7 @@ void loop() {
       heater = proportionalHeat;
     }
     else if (temperature < lowerBound) {
-      heater = 50000;
+      heater = 62498;
     }
     else if (temperature > upperBound) {
       heater = 0;
@@ -154,5 +157,6 @@ void loop() {
 
   //delay(1000);
   prevTemp = temperature;
+  prevErr = error;
   past = curr;
 }
