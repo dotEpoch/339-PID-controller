@@ -32,7 +32,7 @@ const float lowerBound = targetTemp - bandRange/2.0;
 const int interval = 2; // after "interval" points, reset integral
 const float T_i = 30000.0;
 const float T_d = 1.0;
-uint32_t past = 0;
+
 
 
 void setup() {
@@ -81,25 +81,40 @@ float integrate(float *temperatureList, int count, float a, float b) { //trapezo
   return integral;
 }
 
-float derivative() {
+float derivative(float past[], float prev[], float curr[]) { //three point central difference because first difference differantiator introduces too much noise
+  float pastTemp = past[0];
+  float pastTime = past[1];
 
+  float prevTemp = prev[0];
+  float prevTime = prev[1];
 
-  return 0.0;
+  float currTemp = curr[0];
+  float currTime = curr[1];
+
+  float derivative = (prevTemp-pastTemp)(currTime - prevTime)/( (prevTime - pastTime)(currTime - pastTime) ) + (prevTemp - currTemp)(prevTime - pastTime)/( (prevTime - currTime)(currTime - pastTime) );
+
+  return derivative;
 }
 
 
 void loop() {
-
+  
   
   float temperature = thermocouple.readThermocoupleTemperature(); // Read the last temperature measurement made by the thermocouple
-  float curr = millis();
+  static float past[] = {0.0, 0.0};
+  static float prev[] = {0.0, 0.0};
+  static float curr[] = {temperature, millis()-t0};
+
+
+  float curr = millis()-t0;
+  static float past = 0.0;
   float error = (targetTemp - temperature)/bandRange;
   static float prevTemp = 0.0;
   static float prevErr = 0.0;
   delay(100); // 100 ms delay to give the MAX31856 time for next temperature conversion (see datasheet!)
 
   //cooling = false; //for debugging
-  if (cooling && temperature < 90) { // If cooling is needed
+  if (cooling && temperature < 70) { // If cooling is needed
     myMotor->run(RELEASE);
     cooling = false;
     //analogWrite(9, heater);
@@ -115,7 +130,7 @@ void loop() {
 
       static float integral = 0.0;
       static float derivative = 0.0;
-      static float errsum = 0.0;
+      //static float derivBuffer[];
 
       float error = (targetTemp - temperature)/bandRange; // Error of target vs measured
       integral = error*(curr-past) + integral;
