@@ -24,14 +24,12 @@ uint16_t heater = 0;  // Heater power
 const float cutoffTemp = 150.0; // Temperature cut-off point.
 bool cooling = true;
 //Proportional Band
-bool tempReached = false;
 const float targetTemp = 100.0;
 const float bandRange = 8.0;
 const float upperBound = targetTemp + bandRange/2.0;
 const float lowerBound = targetTemp - bandRange/2.0;
-const int interval = 2; // after "interval" points, reset integral
-const float T_i = 30000.0;
-const float T_d = 1.0;
+const float T_i = 31000.0;
+const float T_d = 8.5;
 
 
 
@@ -80,51 +78,52 @@ float integrate(float *temperatureList, int count, float a, float b) { //trapezo
   return integral;
 }
 
-// float derivative(float past[], float prev[], float curr[]) { //three point central difference because first difference differantiator introduces too much noise
-//   float pastTemp = past[0];
-//   float pastTime = past[1];
+float take_derivative(float past[], float prev[], float curr[]) { //three point central difference because first difference differantiator introduces too much noise
+  float pastTemp = past[0];
+  float pastTime = past[1];
 
-//   float prevTemp = prev[0];
-//   float prevTime = prev[1];
+  float prevTemp = prev[0];
+  float prevTime = prev[1];
 
-//   float currTemp = curr[0];
-//   float currTime = curr[1];
+  float currTemp = curr[0];
+  float currTime = curr[1];
 
-//   float derivative = (prevTemp-pastTemp)(currTime - prevTime)/( (prevTime - pastTime)(currTime - pastTime) ) + (prevTemp - currTemp)(prevTime - pastTime)/( (prevTime - currTime)(currTime - pastTime) );
+  float derivative = (prevTemp-pastTemp)*(currTime - prevTime)/( (prevTime - pastTime)*(currTime - pastTime) ) + (prevTemp - currTemp)*(prevTime - pastTime)/( (prevTime - currTime)*(currTime - pastTime) );
 
-//   return derivative;
-// }
+  return derivative;
+}
 
 
 void loop() {
   static int count = 0;
   
   float temperature = thermocouple.readThermocoupleTemperature(); // Read the last temperature measurement made by the thermocouple
-  // static float past[] = {0.0, 0.0};
-  // static float prev[] = {0.0, 0.0};
-  // static float curr[] = {temperature, millis()-t0};
+  float currentTime = millis()-t0;
+  static float past[] = {90, t0};
+  static float prev[] = {90, t0};
+  float curr[] = {temperature, currentTime};
 
 
-  float curr = millis()-t0;
-  static float past = t0;
+
+  //float curr = millis()-t0;
   float error = (targetTemp - temperature)/bandRange;
-  static float prevTemp = 0.0;
-  static float prevErr = 0.0;
+  //static float prevTemp = 0.0;
+  //static float prevErr = 0.0;
   delay(100); // 100 ms delay to give the MAX31856 time for next temperature conversion (see datasheet!)
 
   //cooling = false; //for debugging
-  if (cooling && temperature < 30) { // If cooling is needed
+  if (cooling && temperature < 90) { // If cooling is needed
     myMotor->run(RELEASE);
     cooling = false;
     //analogWrite(9, heater);
     heater = 62498;
   }
-  else if (!cooling ) { //&& tempReached
+  else if (!cooling ) {
 
     if (temperature > cutoffTemp) {
       heater = 0;
       delay(5000);
-    } 
+    }
     else if ( lowerBound < temperature && temperature < upperBound) { // in between bounds
 
       static float integral = 0.0;
@@ -132,10 +131,11 @@ void loop() {
       //static float derivBuffer[];
 
       float error = (targetTemp - temperature)/bandRange; // Error of target vs measured
-      integral = error*(curr-past) + integral;
-      derivative = derivative - (error - prevErr) / (curr - past);
+      integral = error*(curr[1]-prev[1]) + integral;
+      //derivative = derivative - (error - prevErr) / (curr[1] - dpast);
+      derivative = derivative - take_derivative(past, prev, curr);
 
-      float coeff = (0.5 + error + integral/T_i + derivative*T_d);  // proportional error + integral + derivative
+      float coeff = (0.5 + error + integral/T_i + T_d*derivative);  // proportional error + integral + derivative  (integral/T_i + derivative*T_d)
       float proportionalHeat = abs(coeff) * 62498;
       
       // Serial.print(coeff, 4);
@@ -167,13 +167,19 @@ void loop() {
   Serial.print(",");
   Serial.println(heater); 
 
-  //if (temperature >= targetTemp) tempReached =true;
-
   //delay(1000);
-  if (count%2 == 0){}
-  prevTemp = temperature;
-  prevErr = error;
-  past = curr;
+  // if (count%2 == 0){
+  //   prevErr = error;
+  //   prevTemp = temperature;
+  //   dpast = curr;
+  // }
+  past[0] = prev[0];
+  past[1] = prev[1];
+  
+  prev[0] = curr[0];
+  prev[1] = curr[1];
+
+
 
   count++;
 }

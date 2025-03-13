@@ -10,6 +10,8 @@ import pandas as pd
 from sys import exit
 import numpy as np
 
+
+
 def extract_data(path, value):
     data_frame = pd.read_csv(path, sep='\t', header=11)
     
@@ -97,7 +99,7 @@ path_list = [
 #"../Data/Hysteresis/lab5_sample1_Hysteresis-0.5_35000ms_25to100C.csv",
 #"../Data/Hysteresis/lab5_sample1_Hysteresis-0.25_35000ms_25to100C.csv",
 #"../Data/Hysteresis/lab5_sample1_Hysteresis-1_35000ms_25to100C.csv",
-#"../Data/Hysteresis/lab5_sample1_Hysteresis-2_35000ms_25to100C.csv",
+"../Data/Hysteresis/lab5_sample1_Hysteresis-2_35000ms_25to100C.csv",
 
 #"../Data/PID Control/lab5_sample1_ProportionalBand5.0_50000ms_25to100C.csv",
 #"../Data/PID Control/lab5_sample1_ProportionalBand2.0_50000ms_25to100C.csv",
@@ -115,7 +117,9 @@ for path in path_list:
     plt.xlabel('Time (s)')
     plt.ylabel('Temperature (C)')
     plt.legend()
+    plt.style.use('science')
     plt.show()
+    
     
     ### Full
     plt.plot(time, temperature, )
@@ -127,7 +131,9 @@ for path in path_list:
     plt.ylabel('Temperature (C)')
     plt.legend()
     #draw_band(100, 8)
+    plt.style.use('science')
     plt.show()
+    
     
     ### Rising
     plt.plot(rise_time, rise_temperature, )
@@ -136,7 +142,9 @@ for path in path_list:
     plt.xlabel('Time (s)')
     plt.ylabel('Temperature (C)')
     plt.legend()
+    plt.style.use('science')
     plt.show()
+    
     
     ### Oscillations
     plt.plot(osc_time, osc_temperature, )
@@ -146,4 +154,5 @@ for path in path_list:
     plt.xlabel('Time (s)')
     plt.ylabel('Temperature (C)')
     draw_band(osc_temperature, osc_time, 100, 5, show_bands='proportional')
+    plt.style.use('science')
     plt.show()
