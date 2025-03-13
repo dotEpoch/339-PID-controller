@@ -52,7 +52,6 @@ void setup() {
     
   t0 = millis();                  // Set start time 
   analogWrite(9,heater);              // Set a fixed heater power
-  past = t0; 
 
     // --- Fan Control --- //
   AFMS.begin(50);
@@ -81,40 +80,40 @@ float integrate(float *temperatureList, int count, float a, float b) { //trapezo
   return integral;
 }
 
-float derivative(float past[], float prev[], float curr[]) { //three point central difference because first difference differantiator introduces too much noise
-  float pastTemp = past[0];
-  float pastTime = past[1];
+// float derivative(float past[], float prev[], float curr[]) { //three point central difference because first difference differantiator introduces too much noise
+//   float pastTemp = past[0];
+//   float pastTime = past[1];
 
-  float prevTemp = prev[0];
-  float prevTime = prev[1];
+//   float prevTemp = prev[0];
+//   float prevTime = prev[1];
 
-  float currTemp = curr[0];
-  float currTime = curr[1];
+//   float currTemp = curr[0];
+//   float currTime = curr[1];
 
-  float derivative = (prevTemp-pastTemp)(currTime - prevTime)/( (prevTime - pastTime)(currTime - pastTime) ) + (prevTemp - currTemp)(prevTime - pastTime)/( (prevTime - currTime)(currTime - pastTime) );
+//   float derivative = (prevTemp-pastTemp)(currTime - prevTime)/( (prevTime - pastTime)(currTime - pastTime) ) + (prevTemp - currTemp)(prevTime - pastTime)/( (prevTime - currTime)(currTime - pastTime) );
 
-  return derivative;
-}
+//   return derivative;
+// }
 
 
 void loop() {
-  
+  static int count = 0;
   
   float temperature = thermocouple.readThermocoupleTemperature(); // Read the last temperature measurement made by the thermocouple
-  static float past[] = {0.0, 0.0};
-  static float prev[] = {0.0, 0.0};
-  static float curr[] = {temperature, millis()-t0};
+  // static float past[] = {0.0, 0.0};
+  // static float prev[] = {0.0, 0.0};
+  // static float curr[] = {temperature, millis()-t0};
 
 
   float curr = millis()-t0;
-  static float past = 0.0;
+  static float past = t0;
   float error = (targetTemp - temperature)/bandRange;
   static float prevTemp = 0.0;
   static float prevErr = 0.0;
   delay(100); // 100 ms delay to give the MAX31856 time for next temperature conversion (see datasheet!)
 
   //cooling = false; //for debugging
-  if (cooling && temperature < 70) { // If cooling is needed
+  if (cooling && temperature < 30) { // If cooling is needed
     myMotor->run(RELEASE);
     cooling = false;
     //analogWrite(9, heater);
@@ -171,7 +170,10 @@ void loop() {
   //if (temperature >= targetTemp) tempReached =true;
 
   //delay(1000);
+  if (count%2 == 0){}
   prevTemp = temperature;
   prevErr = error;
   past = curr;
+
+  count++;
 }
