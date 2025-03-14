@@ -25,11 +25,11 @@ const float cutoffTemp = 150.0; // Temperature cut-off point.
 bool cooling = true;
 //Proportional Band
 const float targetTemp = 100.0;
-const float bandRange = 8.0;
+const float bandRange = 10.0;
 const float upperBound = targetTemp + bandRange/2.0;
 const float lowerBound = targetTemp - bandRange/2.0;
-const float T_i = 31000.0;
-const float T_d = 8.5;
+const float T_i = 36000.0;
+const float T_d = 9.0;
 
 
 
@@ -93,14 +93,14 @@ float take_derivative(float past[], float prev[], float curr[]) { //three point 
   return derivative;
 }
 
-
+float startTemp = 90;
 void loop() {
   static int count = 0;
   
   float temperature = thermocouple.readThermocoupleTemperature(); // Read the last temperature measurement made by the thermocouple
   float currentTime = millis()-t0;
-  static float past[] = {90, t0};
-  static float prev[] = {90, t0};
+  static float past[] = {startTemp, t0};
+  static float prev[] = {startTemp, t0};
   float curr[] = {temperature, currentTime};
 
 
@@ -112,7 +112,7 @@ void loop() {
   delay(100); // 100 ms delay to give the MAX31856 time for next temperature conversion (see datasheet!)
 
   //cooling = false; //for debugging
-  if (cooling && temperature < 90) { // If cooling is needed
+  if (cooling && temperature < startTemp) { // If cooling is needed
     myMotor->run(RELEASE);
     cooling = false;
     //analogWrite(9, heater);
@@ -135,7 +135,7 @@ void loop() {
       //derivative = derivative - (error - prevErr) / (curr[1] - dpast);
       derivative = derivative - take_derivative(past, prev, curr);
 
-      float coeff = (0.5 + error + integral/T_i + T_d*derivative);  // proportional error + integral + derivative  (integral/T_i + derivative*T_d)
+      float coeff = (0.5 + error + integral/T_i + derivative*T_d);  // proportional error + integral + derivative  (integral/T_i + derivative*T_d)
       float proportionalHeat = abs(coeff) * 62498;
       
       // Serial.print(coeff, 4);
